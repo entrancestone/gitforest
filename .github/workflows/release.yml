@@ -99,13 +99,13 @@ jobs:
 
   # release-please opens its release PR with GITHUB_TOKEN, and GitHub creates no
   # workflow runs for such PRs (verified: release PR head commits carry zero
-  # check runs). The "PR must be raised via no-mistakes" required check can
+  # check runs). The "PR must be raised via pr-guardian" required check can
   # therefore never report on a release PR by itself, which would leave every
   # release blocked on a status that can never arrive.
   #
-  # The required check is now decided by the shared require-no-mistakes action.
+  # The required check is now decided by the shared require-pr-guardian action.
   # Publish that status here instead with the repository's local
-  # .github/scripts/no-mistakes-gate.sh, because the shared action can never
+  # .github/scripts/pr-guardian-gate.sh, because the shared action can never
   # report on a GITHUB_TOKEN PR that produces no workflow run at all. The status
   # is only ever written for a PR the script itself accepts as structurally
   # release-please's own.
@@ -119,7 +119,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Publish the no-mistakes gate status on the release PR
+      - name: Publish the pr-guardian gate status on the release PR
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -149,11 +149,11 @@ jobs:
             # Overriding PR_AUTHOR defeats the script's bot exemption on
             # purpose, so a status is stamped only when the STRUCTURAL
             # release-please conditions hold, never because a bot opened the PR.
-            if PR_AUTHOR="structural-release-please-check" ./.github/scripts/no-mistakes-gate.sh; then
+            if PR_AUTHOR="structural-release-please-check" ./.github/scripts/pr-guardian-gate.sh; then
               echo "Stamping the gate status on PR #${PR_NUMBER} (${PR_HEAD_SHA})."
               gh api --method POST "repos/${REPO}/statuses/${PR_HEAD_SHA}" \
                 -f state=success \
-                -f context='PR must be raised via no-mistakes' \
+                -f context='PR must be raised via pr-guardian' \
                 -f description='release-please release PR: structurally exempt' \
                 -f target_url="${RUN_URL}" >/dev/null
             else

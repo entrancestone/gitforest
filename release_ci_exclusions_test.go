@@ -390,7 +390,7 @@ func TestPullRequestWorkflowsExcludeReleasePleaseOutputs(t *testing.T) {
 	if prWorkflows == 0 {
 		t.Fatal("no pull_request-triggered workflows found under .github/workflows")
 	}
-	// Exactly the no-mistakes gate is exempt today. A second exemption means a
+	// Exactly the pr-guardian gate is exempt today. A second exemption means a
 	// new workflow claimed the required-check name, which needs a look.
 	if requiredCheckWorkflows != 1 {
 		t.Fatalf("expected exactly 1 pull_request workflow backing the %q required check, found %d",

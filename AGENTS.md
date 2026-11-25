@@ -38,8 +38,8 @@ All code must work on Windows:
 
 ## Contribution gate
 
-- PRs to `main` must be raised through no-mistakes (required check `PR must be raised via no-mistakes`); see [CONTRIBUTING.md](CONTRIBUTING.md).
-- A workflow backing a required check must never use `paths`/`paths-ignore`. The gate action pin and `.github/scripts/no-mistakes-gate.sh` are load-bearing; see docs/design.md before touching CI.
+- PRs to `main` must be raised through pr-guardian (required check `PR must be raised via pr-guardian`); see [CONTRIBUTING.md](CONTRIBUTING.md).
+- A workflow backing a required check must never use `paths`/`paths-ignore`. The gate action pin and `.github/scripts/pr-guardian-gate.sh` are load-bearing; see docs/design.md before touching CI.
 
 ## Maintaining this file
 

@@ -16,8 +16,8 @@ buildGoModule {
     "-X main.version=v${version}"
   ];
 
-  # python3 is required by .github/scripts/no-mistakes-gate.sh, which the
-  # test suite (TestNoMistakesGateDecisions) executes via bash to parse
+  # python3 is required by .github/scripts/pr-guardian-gate.sh, which the
+  # test suite (TestPrGuardianGateDecisions) executes via bash to parse
   # pipeline attestation JSON. Without it the gate falls through to the
   # wrong error path and tests fail in the Nix sandbox.
   nativeCheckInputs = [

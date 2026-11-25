@@ -16,21 +16,21 @@ import (
 // requiredCheckContext is the status check context this repository's main
 // ruleset requires. The workflow job name must match it exactly, or the
 // ruleset waits forever on a check nothing ever reports.
-const requiredCheckContext = "PR must be raised via no-mistakes"
+const requiredCheckContext = "PR must be raised via pr-guardian"
 
 const (
-	gateWorkflowPath    = ".github/workflows/no-mistakes-required.yml"
+	gateWorkflowPath    = ".github/workflows/pr-guardian-required.yml"
 	releaseWorkflowPath = ".github/workflows/release.yml"
 )
 
 // gateScriptPath is the gate's executable decision surface. The required
 // check itself is now decided by the shared composite action the workflow
-// delegates to (tested upstream in the no-mistakes repository), but this script
+// delegates to (tested upstream in the pr-guardian repository), but this script
 // is still what release.yml's release-pr-gate-status job runs to stamp the
 // required context on a release-please PR - GitHub creates no workflow runs on
 // a GITHUB_TOKEN PR, so nothing else can report there. These tests therefore
 // drive the script directly.
-const gateScriptPath = "./.github/scripts/no-mistakes-gate.sh"
+const gateScriptPath = "./.github/scripts/pr-guardian-gate.sh"
 
 // gateStep is the gate invocation under test: the script plus the environment
 // contract documented in its own header.
@@ -72,7 +72,7 @@ var cachedPRLookupInputs = []string{
 // requireActionPin is the immutable commit the workflow must delegate to. A
 // mutable ref such as @main would let the pull request under judgement rewrite
 // its own judge; bumping this is a separate, deliberate pull request.
-const requireActionPin = "kunchenguid/no-mistakes/.github/actions/require-no-mistakes@f6441c96c352a18b9cadcaef6b6c7017e9ac3970"
+const requireActionPin = "entrancestone/pr-guardian/.github/actions/require-pr-guardian@5782e2b055b268132494c91bae1594939783b305"
 
 // loadGateStep verifies the shipped workflow still delegates the required check
 // to the pinned shared action, then returns the script invocation these tests
@@ -241,25 +241,25 @@ func runGate(t *testing.T, step gateStep, event pullRequestEvent) (bool, string)
 }
 
 const (
-	noMistakesSignature = "## Pipeline\n\nUpdates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)\n"
+	noMistakesSignature = "## Pipeline\n\nUpdates from [git push pr-guardian](https://github.com/entrancestone/pr-guardian)\n"
 	// attestationHeadSHA is the compact v1 comment's head_sha. Passing cases
 	// bind github.event.pull_request.head.sha to this value.
 	attestationHeadSHA = "0123456789abcdef0123456789abcdef01234567"
 	otherHeadSHA       = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-	// completedAttestation matches the compact v1 comment no-mistakes >= 1.46.0 writes.
+	// completedAttestation matches the compact v1 comment pr-guardian writes.
 	// pr/ci are commonly still running/pending at PR write time and are not required.
-	completedAttestation = `<!-- no-mistakes-pipeline-attestation:v1 {"head_sha":"0123456789abcdef0123456789abcdef01234567","steps":[{"step":"intent","status":"completed"},{"step":"rebase","status":"completed"},{"step":"review","status":"completed"},{"step":"test","status":"completed"},{"step":"document","status":"completed"},{"step":"lint","status":"completed"},{"step":"push","status":"completed"},{"step":"pr","status":"running"},{"step":"ci","status":"pending"}]} -->`
+	completedAttestation = `<!-- pr-guardian-pipeline-attestation:v1 {"head_sha":"0123456789abcdef0123456789abcdef01234567","steps":[{"step":"intent","status":"completed"},{"step":"rebase","status":"completed"},{"step":"review","status":"completed"},{"step":"test","status":"completed"},{"step":"document","status":"completed"},{"step":"lint","status":"completed"},{"step":"push","status":"completed"},{"step":"pr","status":"running"},{"step":"ci","status":"pending"}]} -->`
 	noMistakesBody       = noMistakesSignature + "\n" + completedAttestation + "\n"
 	releaseBody          = ":robot: I have created a release *beep* *boop*\n---\n\n## [2.1.1](https://example.invalid)\n\n---\n" +
 		"This PR was generated with [Release Please](https://github.com/googleapis/release-please). See [documentation](https://github.com/googleapis/release-please#release-please)."
 	repo     = "entrancestone/gitforest"
 	forkRepo = "someone-else/gitforest"
 
-	attestationVersionFloor = "no-mistakes >= 1.46.0"
+	attestationVersionFloor = "pr-guardian >= 1.46.0"
 	attestationVersionURL   = "https://github.com/kunchenguid/no-mistakes/pull/670"
 )
 
-func TestNoMistakesGateDecisions(t *testing.T) {
+func TestPrGuardianGateDecisions(t *testing.T) {
 	step := loadGateStep(t)
 
 	cases := []struct {
@@ -283,7 +283,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			// is what release-please would become if it ever used one.
 			name: "release-please release PR authored by a human identity is exempt",
 			event: pullRequestEvent{
-				number: 79, body: releaseBody, author: "kunchenguid",
+				number: 79, body: releaseBody, author: "entrancestone",
 				headRef: "release-please--branches--main", headRepo: repo, baseRepo: repo,
 			},
 			pass: true,
@@ -291,7 +291,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 		{
 			name: "legacy release-please branch prefix is exempt",
 			event: pullRequestEvent{
-				number: 80, body: releaseBody, author: "kunchenguid",
+				number: 80, body: releaseBody, author: "entrancestone",
 				headRef: "release-please/branches/main", headRepo: repo, baseRepo: repo,
 			},
 			pass: true,
@@ -321,9 +321,9 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			pass: true,
 		},
 		{
-			name: "human PR carrying the no-mistakes signature and completed attestation passes",
+			name: "human PR carrying the pr-guardian signature and completed attestation passes",
 			event: pullRequestEvent{
-				number: 83, body: noMistakesBody, author: "kunchenguid",
+				number: 83, body: noMistakesBody, author: "entrancestone",
 				headRef: "fm/some-work", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass: true,
@@ -331,18 +331,18 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 		{
 			name: "human PR with the signature but no attestation fails",
 			event: pullRequestEvent{
-				number: 89, body: noMistakesSignature, author: "kunchenguid",
-				headRef: "fm/old-no-mistakes", headRepo: repo, baseRepo: repo,
+				number: 89, body: noMistakesSignature, author: "entrancestone",
+				headRef: "fm/old-pr-guardian", headRepo: repo, baseRepo: repo,
 			},
 			pass:       false,
-			wantOutput: []string{attestationVersionFloor, attestationVersionURL, "Older no-mistakes that only writes the signature line is not enough"},
+			wantOutput: []string{attestationVersionFloor, attestationVersionURL, "Older pr-guardian that only writes the signature line is not enough"},
 		},
 		{
 			name: "human PR with unparseable attestation JSON fails",
 			event: pullRequestEvent{
 				number:  90,
-				body:    noMistakesSignature + "\n<!-- no-mistakes-pipeline-attestation:v1 {not-json} -->\n",
-				author:  "kunchenguid",
+				body:    noMistakesSignature + "\n<!-- pr-guardian-pipeline-attestation:v1 {not-json} -->\n",
+				author:  "entrancestone",
 				headRef: "fm/bad-attestation", headRepo: repo, baseRepo: repo,
 			},
 			pass:       false,
@@ -353,7 +353,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			event: pullRequestEvent{
 				number:  91,
 				body:    noMistakesSignature + "\n" + strings.Replace(completedAttestation, `"step":"review","status":"completed"`, `"step":"review","status":"skipped"`, 1) + "\n",
-				author:  "kunchenguid",
+				author:  "entrancestone",
 				headRef: "fm/skipped-review", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass:       false,
@@ -365,7 +365,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			event: pullRequestEvent{
 				number:  92,
 				body:    noMistakesSignature + "\n" + strings.Replace(completedAttestation, `"step":"test","status":"completed"`, `"step":"test","status":"failed"`, 1) + "\n",
-				author:  "kunchenguid",
+				author:  "entrancestone",
 				headRef: "fm/failed-test", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass:       false,
@@ -377,7 +377,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			event: pullRequestEvent{
 				number:  93,
 				body:    noMistakesSignature + "\n" + strings.Replace(completedAttestation, `"step":"document","status":"completed"`, `"step":"document","status":"pending"`, 1) + "\n",
-				author:  "kunchenguid",
+				author:  "entrancestone",
 				headRef: "fm/pending-document", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass:       false,
@@ -389,7 +389,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			event: pullRequestEvent{
 				number:  94,
 				body:    noMistakesSignature + "\n" + strings.Replace(completedAttestation, `"step":"document","status":"completed"`, `"step":"document","status":"running"`, 1) + "\n",
-				author:  "kunchenguid",
+				author:  "entrancestone",
 				headRef: "fm/running-document", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass:       false,
@@ -400,8 +400,8 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			name: "human PR missing the document step fails",
 			event: pullRequestEvent{
 				number:  95,
-				body:    noMistakesSignature + "\n<!-- no-mistakes-pipeline-attestation:v1 {\"head_sha\":\"0123456789abcdef0123456789abcdef01234567\",\"steps\":[{\"step\":\"review\",\"status\":\"completed\"},{\"step\":\"test\",\"status\":\"completed\"}]} -->\n",
-				author:  "kunchenguid",
+				body:    noMistakesSignature + "\n<!-- pr-guardian-pipeline-attestation:v1 {\"head_sha\":\"0123456789abcdef0123456789abcdef01234567\",\"steps\":[{\"step\":\"review\",\"status\":\"completed\"},{\"step\":\"test\",\"status\":\"completed\"}]} -->\n",
+				author:  "entrancestone",
 				headRef: "fm/missing-document", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass:       false,
@@ -411,7 +411,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 		{
 			name: "human PR with attestation for a different head SHA fails",
 			event: pullRequestEvent{
-				number: 97, body: noMistakesBody, author: "kunchenguid",
+				number: 97, body: noMistakesBody, author: "entrancestone",
 				headRef: "fm/stale-attestation", headRepo: repo, headSHA: otherHeadSHA, baseRepo: repo,
 			},
 			pass: false,
@@ -428,7 +428,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			event: pullRequestEvent{
 				number:  98,
 				body:    noMistakesSignature + "\n" + strings.Replace(completedAttestation, `"head_sha":"0123456789abcdef0123456789abcdef01234567"`, `"head_sha":""`, 1) + "\n",
-				author:  "kunchenguid",
+				author:  "entrancestone",
 				headRef: "fm/empty-head-sha", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass: false,
@@ -444,7 +444,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 			event: pullRequestEvent{
 				number:  99,
 				body:    noMistakesSignature + "\n" + strings.Replace(completedAttestation, `"head_sha":"0123456789abcdef0123456789abcdef01234567",`, "", 1) + "\n",
-				author:  "kunchenguid",
+				author:  "entrancestone",
 				headRef: "fm/missing-head-sha", headRepo: repo, headSHA: attestationHeadSHA, baseRepo: repo,
 			},
 			pass: false,
@@ -457,7 +457,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 		{
 			name: "human PR without the signature fails",
 			event: pullRequestEvent{
-				number: 84, body: "## Summary\n\nA hand-written pull request.", author: "kunchenguid",
+				number: 84, body: "## Summary\n\nA hand-written pull request.", author: "entrancestone",
 				headRef: "fix/something", headRepo: repo, baseRepo: repo,
 			},
 			pass: false,
@@ -465,7 +465,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 		{
 			name: "empty body fails",
 			event: pullRequestEvent{
-				number: 85, body: "", author: "kunchenguid",
+				number: 85, body: "", author: "entrancestone",
 				headRef: "fix/something", headRepo: repo, baseRepo: repo,
 			},
 			pass: false,
@@ -473,7 +473,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 		{
 			name: "borrowed release branch name alone fails",
 			event: pullRequestEvent{
-				number: 86, body: "## Summary\n\nNot a release PR.", author: "kunchenguid",
+				number: 86, body: "## Summary\n\nNot a release PR.", author: "entrancestone",
 				headRef: "release-please--branches--main", headRepo: repo, baseRepo: repo,
 			},
 			pass: false,
@@ -489,7 +489,7 @@ func TestNoMistakesGateDecisions(t *testing.T) {
 		{
 			name: "release body on an ordinary same-repo branch fails",
 			event: pullRequestEvent{
-				number: 88, body: releaseBody, author: "kunchenguid",
+				number: 88, body: releaseBody, author: "entrancestone",
 				headRef: "feat/pretend", headRepo: repo, baseRepo: repo,
 			},
 			pass: false,
@@ -541,7 +541,7 @@ func loadReleaseGateStatusStep(t *testing.T) gateStep {
 		if step.Uses == "actions/checkout@v4" {
 			hasCheckout = true
 		}
-		if step.Name == "Publish the no-mistakes gate status on the release PR" {
+		if step.Name == "Publish the pr-guardian gate status on the release PR" {
 			if strings.TrimSpace(step.Run) == "" {
 				t.Fatal("release gate status step has no executable run block")
 			}
@@ -814,8 +814,8 @@ func grantsPullRequestsRead(value string) bool {
 	return value == "read" || value == "write"
 }
 
-func isRequireNoMistakesAction(uses string) bool {
-	return strings.Contains(uses, "/.github/actions/require-no-mistakes@")
+func isRequirePrGuardianAction(uses string) bool {
+	return strings.Contains(uses, "/.github/actions/require-pr-guardian@")
 }
 
 func gateLiveLookupViolations(wf workflowFile) []string {
@@ -850,12 +850,12 @@ func gateLiveLookupViolations(wf workflowFile) []string {
 		if strings.TrimSpace(step.Run) != "" {
 			out = append(out, fmt.Sprintf("job %q step %d still runs inline commands; live lookup must not fetch the PR body first", jobID, i))
 		}
-		if !isRequireNoMistakesAction(step.Uses) {
+		if !isRequirePrGuardianAction(step.Uses) {
 			continue
 		}
 		for _, key := range cachedPRLookupInputs {
 			if _, ok := step.With[key]; ok {
-				out = append(out, fmt.Sprintf("job %q passes cached %s into require-no-mistakes; live lookup reads body and head from one response", jobID, key))
+				out = append(out, fmt.Sprintf("job %q passes cached %s into require-pr-guardian; live lookup reads body and head from one response", jobID, key))
 			}
 		}
 	}

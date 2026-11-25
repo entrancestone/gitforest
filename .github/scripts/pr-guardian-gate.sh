@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# This script no longer decides the ordinary "PR must be raised via no-mistakes"
+# This script no longer decides the ordinary "PR must be raised via pr-guardian"
 # required check. That check is decided by the shared composite action
-# kunchenguid/no-mistakes/.github/actions/require-no-mistakes, pinned in
-# .github/workflows/no-mistakes-required.yml. Its bot exemptions ride the
+# entrancestone/pr-guardian/.github/actions/require-pr-guardian, pinned in
+# .github/workflows/pr-guardian-required.yml. Its bot exemptions ride the
 # action's exempt-authors input.
 #
 # This script has exactly one live consumer: release.yml's
@@ -24,7 +24,7 @@
 #
 # The release-please test is deliberately STRUCTURAL, never author identity. If
 # release-please is ever switched to a PAT, its PRs could arrive as the human
-# `kunchenguid`, who also opens ordinary human PRs. Exempting that login would
+# `entrancestone`, who also opens ordinary human PRs. Exempting that login would
 # exempt every human PR too.
 #
 # Inputs (environment):
@@ -34,8 +34,8 @@
 # Exit status: 0 = pass, 1 = fail.
 set -eu
 
-NO_MISTAKES_MARKER='Updates from [git push no-mistakes](https://github.com/kunchenguid/no-mistakes)'
-ATTESTATION_PREFIX='<!-- no-mistakes-pipeline-attestation:v1'
+PR_GUARDIAN_MARKER='Updates from [git push pr-guardian](https://github.com/entrancestone/pr-guardian)'
+ATTESTATION_PREFIX='<!-- pr-guardian-pipeline-attestation:v1'
 ATTESTATION_VERSION_FLOOR='1.46.0'
 ATTESTATION_VERSION_URL='https://github.com/kunchenguid/no-mistakes/pull/670'
 RELEASE_PLEASE_MARKER='This PR was generated with [Release Please]'
@@ -95,11 +95,11 @@ json_python() {
 
 fail_missing_or_unparseable_attestation() {
     {
-        echo "::error::This PR has the no-mistakes signature but no parseable pipeline step attestation."
+        echo "::error::This PR has the pr-guardian signature but no parseable pipeline step attestation."
         echo
-        echo "This repository requires no-mistakes >= ${ATTESTATION_VERSION_FLOOR} (${ATTESTATION_VERSION_URL})."
-        echo "Older no-mistakes that only writes the signature line is not enough."
-        echo "Submit via 'git push no-mistakes' with a current no-mistakes so the PR body includes:"
+        echo "This repository requires pr-guardian >= ${ATTESTATION_VERSION_FLOOR} (${ATTESTATION_VERSION_URL})."
+        echo "Older pr-guardian that only writes the signature line is not enough."
+        echo "Submit via 'git push pr-guardian' with a current pr-guardian so the PR body includes:"
         echo
         echo "    ${ATTESTATION_PREFIX} {\"head_sha\":\"...\",\"steps\":[...]} -->"
         echo
@@ -110,14 +110,14 @@ fail_missing_or_unparseable_attestation() {
 
 fail_incomplete_attestation() {
     {
-        echo "::error::This PR's no-mistakes pipeline attestation does not show completed required steps."
+        echo "::error::This PR's pr-guardian pipeline attestation does not show completed required steps."
         echo
         echo "This repository requires review, test, and document to each have status=completed."
         echo "Quota skips and agent skips are not compliant."
         echo
         printf '%s\n' "$@"
         echo
-        echo "Re-run those steps to completion with 'git push no-mistakes'."
+        echo "Re-run those steps to completion with 'git push pr-guardian'."
         echo
         echo "PR author: ${pr_author}"
     } >&2
@@ -135,13 +135,13 @@ display_sha() {
 fail_attestation_head_sha() {
     local attested_sha="$1"
     {
-        echo "::error::This PR's no-mistakes pipeline attestation is not bound to the current pull request head."
+        echo "::error::This PR's pr-guardian pipeline attestation is not bound to the current pull request head."
         echo
         echo "The attestation head_sha must equal the current pull request head SHA so a later push cannot pass on a stale attestation."
         echo "  attestation head_sha: $(display_sha "$attested_sha")"
         echo "  pull request head:    $(display_sha "$pr_head_sha")"
         echo
-        echo "Re-run 'git push no-mistakes' on the current head so the PR body attestation is rewritten for this commit."
+        echo "Re-run 'git push pr-guardian' on the current head so the PR body attestation is rewritten for this commit."
         echo
         echo "PR author: ${pr_author}"
     } >&2
@@ -168,7 +168,7 @@ import json, os, re, sys
 
 body = os.environ.get("PR_BODY", "")
 match = re.search(
-    r"<!--\s*no-mistakes-pipeline-attestation:v1\s+(.*?)\s*-->",
+    r"<!--\s*pr-guardian-pipeline-attestation:v1\s+(.*?)\s*-->",
     body,
     flags=re.DOTALL,
 )
@@ -257,29 +257,29 @@ EOF
 }
 
 if is_exempt_bot; then
-    echo "PR #${pr_number} was opened by ${pr_author}; exempt from the no-mistakes signature."
+    echo "PR #${pr_number} was opened by ${pr_author}; exempt from the pr-guardian signature."
     exit 0
 fi
 
 if is_release_please_branch && is_same_repo_head && has_release_please_footer; then
-    echo "PR #${pr_number} is a release-please release PR (same-repo branch '${pr_head_ref}' with the Release Please footer); exempt from the no-mistakes signature."
+    echo "PR #${pr_number} is a release-please release PR (same-repo branch '${pr_head_ref}' with the Release Please footer); exempt from the pr-guardian signature."
     exit 0
 fi
 
-if body_contains "$NO_MISTAKES_MARKER"; then
+if body_contains "$PR_GUARDIAN_MARKER"; then
     require_pipeline_attestation
-    echo "Found no-mistakes signature and completed review/test/document attestation bound to head ${pr_head_sha} in PR #${pr_number} body."
+    echo "Found pr-guardian signature and completed review/test/document attestation bound to head ${pr_head_sha} in PR #${pr_number} body."
     exit 0
 fi
 
 {
-    echo "::error::This PR was not raised through no-mistakes."
+    echo "::error::This PR was not raised through pr-guardian."
     echo
-    echo "Contributions to this repository must be submitted via 'git push no-mistakes'."
+    echo "Contributions to this repository must be submitted via 'git push pr-guardian'."
     echo "That pipeline runs the required review/test/lint/CI steps and writes a"
     echo "deterministic '## Pipeline' section into the PR body containing:"
     echo
-    echo "    $NO_MISTAKES_MARKER"
+    echo "    $PR_GUARDIAN_MARKER"
     echo
     echo "The only other way to pass is release-please's own release PR, which must"
     echo "satisfy all three structural conditions: a '${RELEASE_PLEASE_BRANCH_PREFIX}'"
