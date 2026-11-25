@@ -44,13 +44,13 @@ $ exit                         # exit the subshell when you're done
 **macOS / Linux**
 
 ```sh
-curl -fsSL https://entrancestone.github.io/gitforest/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/entrancestone/gitforest/main/docs/install.sh | sh
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
-irm https://entrancestone.github.io/gitforest/install.ps1 | iex
+irm https://raw.githubusercontent.com/entrancestone/gitforest/main/docs/install.ps1 | iex
 ```
 
 **Nix**
